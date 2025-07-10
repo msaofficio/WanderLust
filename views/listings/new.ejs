@@ -13,6 +13,7 @@
           class="form-control"
           required
         />
+        <div class="valid-feedback">Great!</div>
       </div>
 
       <div class="mb-3">
@@ -23,6 +24,7 @@
           class="form-control"
           required
         ></textarea>
+        <div class="invalid-feedback">Short Description please!</div>
       </div>
       <div class="mb-3">
         <label for="image" class="form-label">Image Link</label>
@@ -37,19 +39,19 @@
         <div class="mb-3 col-md-3">
           <label for="price" class="form-label">Price</label>
           <input
-            type="number"
             placeholder="Enter price"
             name="price"
             class="form-control"
             required
           />
+          <div class="invalid-feedback">Please enter in correct format</div>
         </div>
         <div class="mb-3 col-md-5">
           <label for="location" class="form-label">Location</label>
           <input
             type="text"
             name="location"
-            placeholder="enter location"
+            placeholder="Enter Location"
             class="form-control"
             required
           />

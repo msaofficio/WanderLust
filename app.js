@@ -4,6 +4,8 @@ const path = require("path");
 const meth = require("method-override");
 const mongoose = require("mongoose");
 const ejsMate = require("ejs-mate");
+const asyncWrap = require("./utils/asyncWrap.js");
+const expresserror = require("./utils/errorr.js");
 const Listing = require("./models/listing.js");
 
 app.set("view engine", "ejs");
@@ -24,72 +26,105 @@ main()
     console.log(err);
   });
 
-app.get("/", (req, res) => {
-  res.send("root working");
-});
+//INDEX ROUTE
+app.get(
+  "/listings",
+  asyncWrap(async (req, res) => {
+    const allListings = await Listing.find({});
+    res.render("./listings/index.ejs", { allListings });
+  })
+);
 
-app.get("/listings", async (req, res) => {
-  const allListings = await Listing.find({});
-  res.render("./listings/index.ejs", { allListings });
-});
+//NEW ROUTE
+app.get(
+  "/listings/new",
+  asyncWrap(async (req, res) => {
+    res.render("./listings/new.ejs");
+  })
+);
 
-app.get("/listings/new", async (req, res) => {
-  res.render("./listings/new.ejs");
-});
+//SHOW ROUTE
+app.get(
+  "/listings/:id",
+  asyncWrap(async (req, res) => {
+    let { id } = req.params;
+    const listing = await Listing.findById(id);
+    res.render("./listings/show.ejs", { listing });
+  })
+);
 
-app.get("/listings/:id", async (req, res) => {
-  let { id } = req.params;
-  const listing = await Listing.findById(id);
-  res.render("./listings/show.ejs", { listing });
-});
+//CREATE ROUTE
+app.post(
+  "/listings",
+  asyncWrap(async (req, res, next) => {
+    let { title, description, image, price, location, country } = req.body;
+    await Listing.insertOne({
+      title: title,
+      description: description,
+      image: image,
+      price: price,
+      location: location,
+      country: country,
+    });
+    res.redirect("/listings");
+  })
+);
 
-app.post("/listings", async (req, res) => {
-  let { title, description, image, price, location, country } = req.body;
-  await Listing.insertOne({
-    title: title,
-    description: description,
-    image: image,
-    price: price,
-    location: location,
-    country: country,
-  });
-  res.redirect("/listings");
-});
+//EDIT ROUTE
+app.get(
+  "/listings/:id/edit",
+  asyncWrap(async (req, res) => {
+    let { id } = req.params;
+    // console.log(id);
+    const listing = await Listing.findById(id);
+    // console.log(listing);
+    res.render("./listings/edit.ejs", { listing });
+  })
+);
 
-app.get("/listings/:id/edit", async (req, res) => {
-  let { id } = req.params;
-  // console.log(id);
-  const listing = await Listing.findById(id);
-  // console.log(listing);
-  res.render("./listings/edit.ejs", { listing });
-});
+//UPDATE ROUTE
+app.put(
+  "/listings/:id",
+  asyncWrap(async (req, res) => {
+    let { id } = req.params;
+    let {
+      title: title,
+      description: description,
+      image: image,
+      price: price,
+      location: location,
+      country: country,
+    } = req.body;
+    // console.log(id);
+    await Listing.findByIdAndUpdate(id, {
+      title: title,
+      description: description,
+      image: image,
+      price: price,
+      location: location,
+      country: country,
+    });
+    res.redirect("/listings");
+  })
+);
 
-app.put("/listings/:id", async (req, res) => {
-  let { id } = req.params;
-  let {
-    title: title,
-    description: description,
-    image: image,
-    price: price,
-    location: location,
-    country: country,
-  } = req.body;
-  // console.log(id);
-  await Listing.findByIdAndUpdate(id, {
-    title: title,
-    description: description,
-    image: image,
-    price: price,
-    location: location,
-    country: country,
-  });
-  res.redirect("/listings");
-});
+//DELETE ROUTE
+app.delete(
+  "/listings/:id",
+  asyncWrap(async (req, res) => {
+    let { id } = req.params;
+    await Listing.findByIdAndDelete(id);
+    res.redirect("/listings");
+  })
+);
 
-app.delete("/listings/:id", async (req, res) => {
-  let { id } = req.params;
-  await Listing.findByIdAndDelete(id);
-  res.redirect("/listings");
+app.all('*rest', (req, res) => { res.status(404).send('Not found'); });
+
+//MIDDLEWARE for handling the server side validations error if occured
+app.use((err, req, res, next) => {
+  let { status, message } = err;
+  res.status((status)).send((message));
+  // res.send("Something wen wrong");
 });
 
 app.listen(8080, () => {
