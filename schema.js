@@ -9,5 +9,4 @@ module.exports.listingSchema = Joi.object({
         location: Joi.string().required(),
         image: Joi.string().allow("",null)
     }).required(),
-
 });
