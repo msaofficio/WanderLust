@@ -7,7 +7,8 @@ const meth = require("method-override");
 const ejsMate = require("ejs-mate");
 const asyncWrap = require("./utils/asyncWrap.js");
 const expresserror = require("./utils/errorr.js");
-const { listingSchema } = require("./schema.js");
+const { listingSchema, reviewSchema } = require("./schema.js");
+
 const Review = require("./models/reviews.js");
 
 app.set("view engine", "ejs");
@@ -30,6 +31,15 @@ main()
 
 const validateListing = (req, res, next) => {
   let { error } = listingSchema.validate(req.body);
+  if (error) {
+    let errMsg = error.details.map((el) => el.message).join(",");
+    throw new expresserror(400, errMsg);
+  } else {
+    next();
+  }
+};
+const validateReview = (req, res, next) => {
+  let { error } = reviewSchema.validate(req.body);
   if (error) {
     let errMsg = error.details.map((el) => el.message).join(",");
     throw new expresserror(400, errMsg);
@@ -90,10 +100,11 @@ app.get(
 
 //UPDATE ROUTE
 app.put(
-  "/listings/:id",validateListing,
+  "/listings/:id",
+  validateListing,
   asyncWrap(async (req, res) => {
     let { id } = req.params;
-    await Listing.findByIdAndUpdate(id,{...req.body.listing});
+    await Listing.findByIdAndUpdate(id, { ...req.body.listing });
     // console.log(id);
     res.redirect(`/listings/${id}`);
   })
@@ -110,17 +121,22 @@ app.delete(
 );
 
 // REVIEW ROUTE
-app.post("/listings/:id/reviews", async (req, res) => {
-  let { id } = req.params;
-  let listing = await Listing.findById(id);
-  let newReview = new Review(req.body.review);
-  listing.reviews.push(newReview);
-  await newReview.save();
-  await listing.save();
+app.post(
+  "/listings/:id/reviews",
+  validateReview,
+  asyncWrap(async (req, res, next) => {
+    let { id } = req.params;
+    // console.log(req.body)
+    let listing = await Listing.findById(id);
+    let newReview = new Review(req.body.review);
+    listing.reviews.push(newReview);
+    await newReview.save();
+    await listing.save();
 
-  console.log("Review added successfully");
-  res.redirect(`/listings/${id}`);
-});
+    console.log("Review added successfully");
+    res.redirect(`/listings/${listing._id}`);
+  })
+);
 
 app.all("*rest", (req, res) => {
   res.status(404).send("Not found");

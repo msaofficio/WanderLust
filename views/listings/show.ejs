@@ -54,7 +54,7 @@
           />
         </div>
         <div class="mb-3">
-          <label for="comment">Comments</label>
+          <label for="comment" class="form-label">Comments</label>
           <textarea
             class="form-control"
             name="review[comment]"
@@ -63,6 +63,9 @@
             rows="5"
             required
           ></textarea>
+          <div class="invalid-feedback">
+            Please add some comments for review
+          </div>
         </div>
         <button class="btn btn-outline-dark mb-2">Submit Review</button>
       </form>
