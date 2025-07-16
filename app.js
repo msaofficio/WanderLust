@@ -1,12 +1,14 @@
 const express = require("express");
 const app = express();
+const mongoose = require("mongoose");
+const Listing = require("./models/listing.js");
 const path = require("path");
 const meth = require("method-override");
-const mongoose = require("mongoose");
 const ejsMate = require("ejs-mate");
 const asyncWrap = require("./utils/asyncWrap.js");
 const expresserror = require("./utils/errorr.js");
-const Listing = require("./models/listing.js");
+const { listingSchema } = require("./schema.js");
+const Review = require("./models/reviews.js");
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
@@ -25,6 +27,16 @@ main()
   .catch((err) => {
     console.log(err);
   });
+
+const validateListing = (req, res, next) => {
+  let { error } = listingSchema.validate(req.body);
+  if (error) {
+    let errMsg = error.details.map((el) => el.message).join(",");
+    throw new expresserror(400, errMsg);
+  } else {
+    next();
+  }
+};
 
 //INDEX ROUTE
 app.get(
@@ -56,16 +68,10 @@ app.get(
 //CREATE ROUTE
 app.post(
   "/listings",
+  validateListing,
   asyncWrap(async (req, res, next) => {
-    let { title, description, image, price, location, country } = req.body;
-    await Listing.insertOne({
-      title: title,
-      description: description,
-      image: image,
-      price: price,
-      location: location,
-      country: country,
-    });
+    const newListing = new Listing(req.body.listing);
+    await newListing.save();
     res.redirect("/listings");
   })
 );
@@ -84,27 +90,12 @@ app.get(
 
 //UPDATE ROUTE
 app.put(
-  "/listings/:id",
+  "/listings/:id",validateListing,
   asyncWrap(async (req, res) => {
     let { id } = req.params;
-    let {
-      title: title,
-      description: description,
-      image: image,
-      price: price,
-      location: location,
-      country: country,
-    } = req.body;
+    await Listing.findByIdAndUpdate(id,{...req.body.listing});
     // console.log(id);
-    await Listing.findByIdAndUpdate(id, {
-      title: title,
-      description: description,
-      image: image,
-      price: price,
-      location: location,
-      country: country,
-    });
-    res.redirect("/listings");
+    res.redirect(`/listings/${id}`);
   })
 );
 
@@ -118,14 +109,29 @@ app.delete(
   })
 );
 
-app.all('*rest', (req, res) => { res.status(404).send('Not found'); });
+// REVIEW ROUTE
+app.post("/listings/:id/reviews", async (req, res) => {
+  let { id } = req.params;
+  let listing = await Listing.findById(id);
+  let newReview = new Review(req.body.review);
+  listing.reviews.push(newReview);
+  await newReview.save();
+  await listing.save();
+
+  console.log("Review added successfully");
+  res.redirect(`/listings/${id}`);
+});
+
+app.all("*rest", (req, res) => {
+  res.status(404).send("Not found");
+});
 
 //MIDDLEWARE for handling the server side validations error if occured
-app.use((err, req, res, next) => {
-  let { status, message } = err;
-  res.status((status)).send((message));
-  // res.send("Something wen wrong");
-});
+// app.use((err, req, res, next) => {
+//   let { status, message } = err;
+//   res.status(status).send(message);
+//   // res.send("Something wen wrong");
+// });
 
 app.listen(8080, () => {
   console.log("server listening on port 8080");
