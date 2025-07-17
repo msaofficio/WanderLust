@@ -70,7 +70,7 @@ app.get(
   "/listings/:id",
   asyncWrap(async (req, res) => {
     let { id } = req.params;
-    const listing = await Listing.findById(id);
+    const listing = await Listing.findById(id).populate('reviews');
     res.render("./listings/show.ejs", { listing });
   })
 );
@@ -122,9 +122,7 @@ app.delete(
 
 // REVIEW ROUTE
 app.post(
-  "/listings/:id/reviews",
-  validateReview,
-  asyncWrap(async (req, res, next) => {
+  "/listings/:id/reviews",validateReview, asyncWrap( async (req, res) => {
     let { id } = req.params;
     // console.log(req.body)
     let listing = await Listing.findById(id);
@@ -135,19 +133,18 @@ app.post(
 
     console.log("Review added successfully");
     res.redirect(`/listings/${listing._id}`);
-  })
-);
+}));
 
 app.all("*rest", (req, res) => {
   res.status(404).send("Not found");
 });
 
-//MIDDLEWARE for handling the server side validations error if occured
-// app.use((err, req, res, next) => {
-//   let { status, message } = err;
-//   res.status(status).send(message);
-//   // res.send("Something wen wrong");
-// });
+// MIDDLEWARE for handling the server side validations error if occured
+app.use((err, req, res, next) => {
+  let { status, message } = err;
+  res.status(status).send(message);
+  // res.send("Something wen wrong");
+});
 
 app.listen(8080, () => {
   console.log("server listening on port 8080");
